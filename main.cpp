@@ -2,7 +2,14 @@
 #include <iostream>
 
 #define KERNEL_SIZE 3
-#define KERNEL_WANTED 2
+#define IDENTITY 0
+#define SHARPENING 1
+#define EDGE_DETECTION_1 2
+#define EDGE_DETECTION_2 3
+#define EDGE_DETECTION_3 4
+
+
+#define KERNEL_WANTED EDGE_DETECTION_1
 
 int createPixelColor(int R, int G, int B)
 {
@@ -123,8 +130,11 @@ int main(void)
     return -1;
 
   char kernel[3][3];
+  memset(kernel[0], 0, 3);
+  memset(kernel[1], 0, 3);
+  memset(kernel[2], 0, 3);
 
-#if KERNEL_WANTED == 1
+#if KERNEL_WANTED == IDENTITY
   kernel[0][0] = 0;
   kernel[0][1] = -1;
   kernel[0][2] = 0;
@@ -135,12 +145,24 @@ int main(void)
   kernel[2][1] = -1;
   kernel[2][2] = 0;
   std::cout << "Sharpen kernel" << std::endl;
-#elif KERNEL_WANTED == 2
-  memset(kernel[0], 0, 3);
-  memset(kernel[1], 0, 3);
-  memset(kernel[2], 0, 3);
+#elif KERNEL_WANTED == SHARPENING
   kernel[1][1] = 1;
   std::cout << "Original kernel" << std::endl;
+#elif KERNEL_WANTED == EDGE_DETECTION_1
+  kernel[0][1] = 1;
+  kernel[1][0] = 1;
+  kernel[1][1] = -4;
+  kernel[1][2] = 1;
+  kernel[2][1] = 1;
+  std::cout << "Edge detection #1 kernel" << std::endl;
+#elif KERNEL_WANTED == EDGE_DETECTION_2
+
+  std::cout << "Edge detection #2 kernel" << std::endl;
+#elif KERNEL_WANTED == EDGE_DETECTION_3
+  //     -1 -1 -1      1 -2 1
+  //    -1 8 -1      -2 4 -2
+  //   -1 -1 -1      1 -2 1
+  std::cout << "Edge detection #3 kernel" << std::endl;
 #endif
 
 
