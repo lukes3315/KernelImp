@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <iostream>
 
-
 #define KERNEL_SIZE 3
 #define IDENTITY 0
 #define SHARPENING 1
@@ -11,7 +10,7 @@
 #define EDGE_DETECTION_3 4
 #define BLUR 5
 
-#define KERNEL_WANTED SHARPENING
+#define KERNEL_WANTED EDGE_DETECTION_1
 
 #define R_2_GRAY 0.2126
 #define G_2_GRAY 0.7152
@@ -136,6 +135,53 @@ void copy(cv::Mat & from, cv::Mat & to)
     }
 }
 
+int getColorAverage(int x, int y, cv::Mat & from)
+{
+  int avg_R = 0, avg_G = 0, avg_B = 0;
+
+  avg_R += getRed(getPixelColor(x - 1, y - 1, from));
+  avg_G += getGreen(getPixelColor(x - 1, y - 1, from));
+  avg_B += getBlue(getPixelColor(x - 1, y - 1, from));
+  
+  avg_R += getRed(getPixelColor(x, y - 1, from));
+  avg_G += getGreen(getPixelColor(x, y - 1, from));
+  avg_B += getBlue(getPixelColor(x, y - 1, from));
+
+  avg_R += getRed(getPixelColor(x + 1, y - 1, from));
+  avg_G += getGreen(getPixelColor(x + 1, y - 1, from));
+  avg_B += getBlue(getPixelColor(x + 1, y - 1, from));
+
+  avg_R += getRed(getPixelColor(x - 1, y, from));
+  avg_G += getGreen(getPixelColor(x - 1, y, from));
+  avg_B += getBlue(getPixelColor(x - 1, y, from));
+
+  avg_R += getRed(getPixelColor(x, y, from));
+  avg_G += getGreen(getPixelColor(x, y, from));
+  avg_B += getBlue(getPixelColor(x, y, from));
+
+  avg_R += getRed(getPixelColor(x + 1, y, from));
+  avg_G += getGreen(getPixelColor(x + 1, y, from));
+  avg_B += getBlue(getPixelColor(x + 1, y, from));
+
+  avg_R += getRed(getPixelColor(x - 1, y + 1, from));
+  avg_G += getGreen(getPixelColor(x - 1, y + 1, from));
+  avg_B += getBlue(getPixelColor(x - 1, y + 1, from));
+
+  avg_R += getRed(getPixelColor(x, y + 1, from));
+  avg_G += getGreen(getPixelColor(x, y + 1, from));
+  avg_B += getBlue(getPixelColor(x, y + 1, from));
+
+  avg_R += getRed(getPixelColor(x + 1, y + 1, from));
+  avg_G += getGreen(getPixelColor(x + 1, y + 1, from));
+  avg_B += getBlue(getPixelColor(x + 1, y + 1, from));
+  
+  avg_R /= 9;
+  avg_G /= 9;
+  avg_B /= 9;
+
+  return createPixelColor(avg_R, avg_G, avg_B);
+}
+
 void scale(cv::Mat & from, cv::Mat & to, float _scale)
 {
   int _n_rows = from.rows * _scale;
@@ -156,9 +202,16 @@ void scale(cv::Mat & from, cv::Mat & to, float _scale)
       for (int y = 0 ; y < to.rows ; ++y)
 	{
 	  for (int x = 0 ; x < to.cols ; ++x)
-	    {
-	      setPixelColor(x, y, to,
-			    getPixelColor((int)x/_scale, (int)y/_scale, from));
+	    {	
+	      if (x > 0 && y > 0 && x < to.cols - 1 && y < to.rows - 1)
+		{
+		  setPixelColor(x, y, to, getColorAverage((int)x/_scale, (int)y/_scale, from));
+		}
+	      else
+		{
+		  setPixelColor(x, y, to,
+				getPixelColor((int)x/_scale, (int)y/_scale, from));
+		}
 	    }
 	}
     }
@@ -234,7 +287,7 @@ int applyKernel(int x, int y, cv::Mat & img, char kernel[][3])
   int curr_y = 0;
   int curr_x = 0;
   int color = 0;
-  
+
   for (int i = 0 ; i < KERNEL_SIZE ; ++i)
     {
       for (int j = 0 ; j < KERNEL_SIZE ; ++j)
@@ -284,6 +337,50 @@ int applyKernel(int x, int y, cv::Mat & img, char kernel[][3])
   return avg;
 }
 
+int64_t checkNeighBorhood(int x, int y, cv::Mat & img)
+{
+  for (int _y = y - 1 ; _y < y + 1 ; ++_y)
+    {
+      for (int _x = x - 1; _x < x + 1 ; ++_x)
+	{
+	  if (_x != x && _y == y)
+	    {
+	      if (getPixelColor(_x, _y, img) > 0)
+		{
+		  return getCoords(_x, _y);
+		}
+	    }
+	}
+    }
+  return 0;
+}
+
+int64_t mooresNeighbor(int64_t start_coord, cv::Mat & img)
+{
+  int x = getX(start_coord);
+  int y = getY(start_coord);
+
+  if (x > 0 && y > 0
+      && x < img.cols - 1 && y < img.rows - 1)
+    {
+      int coords = 1;
+
+      while (coords > 0)
+	{
+	  coords = checkNeighBorhood(x, y, img);
+	  if (coords > 0)
+	    {
+	      int _x = getX(coords);
+	      int _y = getY(coords);
+	      setPixelColor(_x, _y, img, createPixelColor(255, 0, 255));
+	      x = _x;
+	      y = _y;
+	    }
+	}
+    }
+  return 0;
+}
+
 int main(void)
 {
   cv::VideoCapture cap("video.mp4");
@@ -293,7 +390,10 @@ int main(void)
   cv::Mat gray;
   cv::Mat scaling;
   cv::Mat scaling_sharp;
+  cv::Mat scaling_sharpened;
   cv::Mat cropped;
+  cv::Mat edges;
+  cv::Mat eT, eT2;
 
   if (!cap.isOpened())
     return -1;
@@ -360,26 +460,44 @@ int main(void)
       if (img2.data == NULL)
 	{
 	  img2.create(img.rows, img.cols, img.type());
-	  //scaling.create(img.rows, img.cols, img.type());
+	  edges.create(img.rows, img.cols, img.type());
+	  eT.create(img.rows, img.cols, img.type());
+	  eT2.create(img.rows, img.cols, img.type());
+	  std::cout << "Edges threshed channels = " << eT.channels()<< std::endl;
 	}
-      crop(img, cropped, getCoords(100, 100), getCoords(200, 200));
-      scale(cropped, scaling, 2);
-      convertRGBToGray(img, gray);
-      
-      /*
+      memset(eT.data, 0, img.rows * img.cols * img.channels());
+      memset(eT2.data, 0, img.rows * img.cols * img.channels());
       for (int y = 1 ; y < (img.rows) - 1; ++y)
 	{
 	  for (int x = 1 ; x < (img.cols) - 1 ; ++x)
 	    {
-	      setPixelColor(x, y, img2, applyKernel(x, y, img, kernel));
+	      int color = applyKernel(x, y, img, kernel);
+	      int r = getRed(color);
+	      int g = getGreen(color);
+	      int b = getBlue(color);
+	      if (r > 30 || b > 30 || g > 30)
+		{
+		  setPixelColor(x, y, eT, createPixelColor(255, 255, 255));
+		}
+	      setPixelColor(x, y, edges, color);
 	    }
 	}
-      */
-      cv::imshow("Cropped", cropped);
-      cv::imshow("Scaled", scaling);
-      cv::imshow("Gray", gray);
+      for (int y = 0 ; y < img.rows ; ++y)
+	{
+	  for (int x = 0 ; x < img.cols ; ++x)
+	    {
+	      int color = getPixelColor(x, y, eT);
+	      
+	      if (color > 0)
+		{
+		  mooresNeighbor(getCoords(x, y), eT);
+		}
+	    }
+	}
+
+      cv::imshow("GrayEdges", eT);
       cv::imshow("VideoBase", img);
-      //cv::imshow("Video", img2);
+      cv::imshow("Edges", edges);
       key = cv::waitKey(1);
     }
   img.release();
