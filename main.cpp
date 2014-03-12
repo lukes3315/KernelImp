@@ -9,7 +9,7 @@
 #define EDGE_DETECTION_3 4
 
 
-#define KERNEL_WANTED EDGE_DETECTION_1
+#define KERNEL_WANTED EDGE_DETECTION_2
 
 int createPixelColor(int R, int G, int B)
 {
@@ -121,7 +121,7 @@ int getAverage(int x, int y, cv::Mat & img, char kernel[][3])
 
 int main(void)
 {
-  cv::VideoCapture cap("video.mp4");
+  cv::VideoCapture cap(0);
   int key = -1;
   cv::Mat img;
   cv::Mat img2;
@@ -134,7 +134,7 @@ int main(void)
   memset(kernel[1], 0, 3);
   memset(kernel[2], 0, 3);
 
-#if KERNEL_WANTED == IDENTITY
+#if KERNEL_WANTED == SHARPENING
   kernel[0][0] = 0;
   kernel[0][1] = -1;
   kernel[0][2] = 0;
@@ -145,7 +145,7 @@ int main(void)
   kernel[2][1] = -1;
   kernel[2][2] = 0;
   std::cout << "Sharpen kernel" << std::endl;
-#elif KERNEL_WANTED == SHARPENING
+#elif KERNEL_WANTED == IDENTITY
   kernel[1][1] = 1;
   std::cout << "Original kernel" << std::endl;
 #elif KERNEL_WANTED == EDGE_DETECTION_1
@@ -156,12 +156,20 @@ int main(void)
   kernel[2][1] = 1;
   std::cout << "Edge detection #1 kernel" << std::endl;
 #elif KERNEL_WANTED == EDGE_DETECTION_2
-
+  memset(kernel[0], -2, KERNEL_SIZE);
+  memset(kernel[1], -2, KERNEL_SIZE);
+  memset(kernel[2], -2, KERNEL_SIZE);
+  kernel[0][0] = 1;
+  kernel[0][2] = 1;
+  kernel[2][0] = 1;
+  kernel[2][2] = 1;
+  kernel[1][1] = 4;
   std::cout << "Edge detection #2 kernel" << std::endl;
 #elif KERNEL_WANTED == EDGE_DETECTION_3
-  //     -1 -1 -1      1 -2 1
-  //    -1 8 -1      -2 4 -2
-  //   -1 -1 -1      1 -2 1
+  memset(kernel[0], -1, KERNEL_SIZE);
+  memset(kernel[1], -1, KERNEL_SIZE);
+  memset(kernel[2], -1, KERNEL_SIZE);
+  kernel[1][1] = 8;
   std::cout << "Edge detection #3 kernel" << std::endl;
 #endif
 
