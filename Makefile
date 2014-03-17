@@ -1,6 +1,6 @@
 NAME_MAIN = main
 
-SRC_MAINSOFT = main.cpp ImageManipulator.cpp
+SRC_MAINSOFT = maintemp.cpp ImageManipulator.cpp
 
 CXX = g++
 CXX_FLAGS_MAIN = -W -Wall -Werror -lopencv_imgproc -lopencv_legacy -lopencv_highgui -lopencv_core

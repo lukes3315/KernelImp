@@ -1,6 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <stdio.h>
 #include <iostream>
+#include "ImageManipulator.hpp"
 
 #define KERNEL_SIZE 3
 #define IDENTITY 0
@@ -110,23 +111,6 @@ int getBlue(int color)
   return (color & 0xFF);
 }
 
-int get_X(int x, int curr_index)
-{
-  if (curr_index == 0)
-    {
-      return x - 1;
-    }
-  if (curr_index == 1)
-    {
-      return x;
-    }
-  if (curr_index == 2)
-    {
-      return x + 1;
-    }
-  return 0;
-}
-
 void copy(cv::Mat & from, cv::Mat & to)
 {
   for (int i = 0 ; i < (to.cols * to.rows) * to.channels() ; ++i)
@@ -219,7 +203,6 @@ void scale(cv::Mat & from, cv::Mat & to, float _scale)
     {
       copy(from, to);
     }
-  std::cout << _scale<<std::endl;
 }
 
 int getY(int64_t coords)
@@ -248,11 +231,6 @@ void crop(cv::Mat & from, cv::Mat & to, int64_t start_coords, int64_t end_coords
   int y = getY(start_coords);
   int _end_x = getX(end_coords);
   int _end_y = getY(end_coords);
-
-  std::cout << "x " << x << std::endl;
-  std::cout << "y " << y << std::endl;
-  std::cout << "endx " << _end_x << std::endl;
-  std::cout << "endy " << _end_y << std::endl;
   int cols = _end_x - x;
   int rows = _end_y - y;
 
@@ -278,7 +256,7 @@ void crop(cv::Mat & from, cv::Mat & to, int64_t start_coords, int64_t end_coords
     }
 }
 
-int applyKernel(int x, int y, cv::Mat & img, char kernel[][3])
+int applyKernel(int x, int y, cv::Mat & img, char **kernel)
 {
   int avg_R = 0;
   int avg_G = 0;
@@ -288,28 +266,30 @@ int applyKernel(int x, int y, cv::Mat & img, char kernel[][3])
   int curr_x = 0;
   int color = 0;
 
+  if (KERNEL_SIZE % 2 == 0)
+    return -1;
+  int mid = KERNEL_SIZE / 2;
   for (int i = 0 ; i < KERNEL_SIZE ; ++i)
     {
       for (int j = 0 ; j < KERNEL_SIZE ; ++j)
 	{
-	  if (i == 0)
+	  if (i != mid)
 	    {
-	      curr_y = y - 1;
-	      curr_x = get_X(x, j);
-	      color = getPixelColor(curr_x, curr_y, img);
+	      curr_y = y - (i - mid);
 	    }
-	  else if (i == 1)
+	  else if (i == mid)
 	    {
 	      curr_y = y;
-	      curr_x = get_X(x, j);
-	      color = getPixelColor(curr_x, curr_y, img);
 	    }
-	  else if (i == 2)
+	  if (j != mid)
 	    {
-	      curr_y = y + 1;
-	      curr_x = get_X(x, j);
-	      color = getPixelColor(curr_x, curr_y, img);
+	      curr_x = x - (j - mid);
 	    }
+	  else if (j == mid)
+	    {
+	      curr_x = x;
+	    }
+	  color = getPixelColor(curr_x, curr_y, img);
 	  avg_R += getRed(color) * kernel[i][j];
 	  avg_G += getGreen(color) * kernel[i][j];
 	  avg_B += getBlue(color) * kernel[i][j];
@@ -335,50 +315,6 @@ int applyKernel(int x, int y, cv::Mat & img, char kernel[][3])
     avg_B = 255;
   avg = createPixelColor(avg_R, avg_G, avg_B);
   return avg;
-}
-
-int64_t checkNeighBorhood(int x, int y, cv::Mat & img)
-{
-  for (int _y = y - 1 ; _y < y + 1 ; ++_y)
-    {
-      for (int _x = x - 1; _x < x + 1 ; ++_x)
-	{
-	  if (_x != x && _y == y)
-	    {
-	      if (getPixelColor(_x, _y, img) > 0)
-		{
-		  return getCoords(_x, _y);
-		}
-	    }
-	}
-    }
-  return 0;
-}
-
-int64_t mooresNeighbor(int64_t start_coord, cv::Mat & img)
-{
-  int x = getX(start_coord);
-  int y = getY(start_coord);
-
-  if (x > 0 && y > 0
-      && x < img.cols - 1 && y < img.rows - 1)
-    {
-      int coords = 1;
-
-      while (coords > 0)
-	{
-	  coords = checkNeighBorhood(x, y, img);
-	  if (coords > 0)
-	    {
-	      int _x = getX(coords);
-	      int _y = getY(coords);
-	      setPixelColor(_x, _y, img, createPixelColor(255, 0, 255));
-	      x = _x;
-	      y = _y;
-	    }
-	}
-    }
-  return 0;
 }
 
 int main(void)
@@ -494,7 +430,6 @@ int main(void)
 		}
 	    }
 	}
-
       cv::imshow("GrayEdges", eT);
       cv::imshow("VideoBase", img);
       cv::imshow("Edges", edges);
