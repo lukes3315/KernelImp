@@ -13,20 +13,20 @@ ImageManipulator::ImageManipulator(int size):_kernelSize(size)
 
 ImageManipulator::~ImageManipulator()
 {
-  releaseKernel(&edgeKernel1);
-  releaseKernel(&edgeKernel2);
-  releaseKernel(&edgeKernel3);
-  releaseKernel(&sharpenKernel);
-  releaseKernel(&blurKernel);
+  releaseKernel(&_edgeKernel1);
+  releaseKernel(&_edgeKernel2);
+  releaseKernel(&_edgeKernel3);
+  releaseKernel(&_sharpenKernel);
+  releaseKernel(&_blurKernel);
 }
 
 void ImageManipulator::initialize()
 {
-  allocKernel(_kernelSize, &edgeKernel1);
-  allocKernel(_kernelSize, &edgeKernel2);
-  allocKernel(_kernelSize, &edgeKernel3);
-  allocKernel(_kernelSize, &sharpenKernel);
-  allocKernel(_kernelSize, &blurKernel);
+  allocKernel(_kernelSize, &_edgeKernel1);
+  allocKernel(_kernelSize, &_edgeKernel2);
+  allocKernel(_kernelSize, &_edgeKernel3);
+  allocKernel(_kernelSize, &_sharpenKernel);
+  allocKernel(_kernelSize, &_blurKernel);
 
   _middle = floor(_kernelSize/2);
   initEdgeKernel1();
@@ -34,6 +34,8 @@ void ImageManipulator::initialize()
   initEdgeKernel3();
   initSharpenKernel();
   initBlurKernel();
+  LMC_FUNCTIONS.insert(std::pair<int, LMC_FUNCTION_POINTER>(0, &ImageManipulator::LMC_nearestNeighbore));
+  LMC_FUNCTIONS.insert(std::pair<int, LMC_FUNCTION_POINTER>(1, &ImageManipulator::LMC_avgSurroundings));
 }
 
 void ImageManipulator::allocKernel(int size, char *** kernel)
@@ -56,39 +58,39 @@ void ImageManipulator::setKernelValue(char *** kernel, int val)
 
 void ImageManipulator::initEdgeKernel1()
 {
-  setKernelValue(&edgeKernel1, 0);
-  edgeKernel1[0][_middle] = 1;
-  edgeKernel1[_middle][0] = 1;
-  edgeKernel1[_middle][_kernelSize - 1] = 1;
-  edgeKernel1[_kernelSize - 1][_middle] = 1;
-  edgeKernel1[_middle][_middle] = -4;
+  setKernelValue(&_edgeKernel1, 0);
+  _edgeKernel1[0][_middle] = 1;
+  _edgeKernel1[_middle][0] = 1;
+  _edgeKernel1[_middle][_kernelSize - 1] = 1;
+  _edgeKernel1[_kernelSize - 1][_middle] = 1;
+  _edgeKernel1[_middle][_middle] = -4;
 }
 
 void ImageManipulator::initEdgeKernel2()
 {
-  setKernelValue(&edgeKernel2, -2);
-  edgeKernel2[_middle][_middle] = 4;
-  edgeKernel2[0][0] = 1;
-  edgeKernel2[0][_kernelSize - 1] = 1;
-  edgeKernel2[_kernelSize - 1][0] = 1;
-  edgeKernel2[_kernelSize - 1][_kernelSize - 1] = 1;
+  setKernelValue(&_edgeKernel2, -2);
+  _edgeKernel2[_middle][_middle] = 4;
+  _edgeKernel2[0][0] = 1;
+  _edgeKernel2[0][_kernelSize - 1] = 1;
+  _edgeKernel2[_kernelSize - 1][0] = 1;
+  _edgeKernel2[_kernelSize - 1][_kernelSize - 1] = 1;
 }
 
 void ImageManipulator::initEdgeKernel3()
 {
-  setKernelValue(&edgeKernel3, -1);
-  edgeKernel3[_middle][_middle] = 8;
+  setKernelValue(&_edgeKernel3, -1);
+  _edgeKernel3[_middle][_middle] = 8;
 }
 
 void ImageManipulator::initSharpenKernel()
 {
-  setKernelValue(&sharpenKernel, -1);
-  sharpenKernel[_middle][_middle] = 9;
+  setKernelValue(&_sharpenKernel, -1);
+  _sharpenKernel[_middle][_middle] = 9;
 }
 
 void ImageManipulator::initBlurKernel()
 {
-  setKernelValue(&blurKernel, 1);
+  setKernelValue(&_blurKernel, 1);
 }
 
 void ImageManipulator::parseImage(char ** kernel, 
@@ -280,27 +282,27 @@ void ImageManipulator::custom(cv::Mat & from, cv::Mat & to, char **kernel, int s
 
 void ImageManipulator::blur(cv::Mat &from, cv::Mat &to)
 {
-  parseImage(blurKernel, _kernelSize, from, to, 9);
+  parseImage(_blurKernel, _kernelSize, from, to, 9);
 }
 
 void ImageManipulator::edgeDetect1(cv::Mat &from, cv::Mat &to)
 {
-  parseImage(edgeKernel1, _kernelSize, from, to, 1);
+  parseImage(_edgeKernel1, _kernelSize, from, to, 1);
 }
 
 void ImageManipulator::edgeDetect2(cv::Mat &from, cv::Mat &to)
 {
-  parseImage(edgeKernel2, _kernelSize, from, to, 1);
+  parseImage(_edgeKernel2, _kernelSize, from, to, 1);
 }
 
 void ImageManipulator::edgeDetect3(cv::Mat &from, cv::Mat &to)
 {
-  parseImage(edgeKernel3, _kernelSize, from, to, 1);
+  parseImage(_edgeKernel3, _kernelSize, from, to, 1);
 }
 
 void ImageManipulator::sharpen(cv::Mat &from, cv::Mat &to)
 {
-  parseImage(sharpenKernel, _kernelSize, from, to, 1);
+  parseImage(_sharpenKernel, _kernelSize, from, to, 1);
 }
 
 void ImageManipulator::crop(cv::Mat & from, cv::Mat & to, 
@@ -338,15 +340,259 @@ void ImageManipulator::crop(cv::Mat & from, cv::Mat & to,
     }
 }
 
-void ImageManipulator::scale(cv::Mat &from, cv::Mat &to, SCALE_TYPE type)
+
+
+void ImageManipulator::split(cv::Mat & from,
+			     cv::Mat & toR,
+			     cv::Mat & toG,
+			     cv::Mat & toB)
+{
+  if (toR.data == NULL)
+    toR.create(from.rows, from.cols, CV_8U);
+
+  if (toG.data == NULL)
+    toG.create(from.rows, from.cols, CV_8U);
+
+  if (toB.data == NULL)
+    toB.create(from.rows, from.cols, CV_8U);
+
+  for (int y = 0 ; y < from.rows ; ++y)
+    {
+      for (int x = 0 ; x < from.cols ; ++x)
+	{
+	  int color = getPixelColor(x, y, from);
+	  toR.data[y * from.cols + x] = getRed(color);
+	  toG.data[y * from.cols + x] = getGreen(color);
+	  toB.data[y * from.cols + x] = getBlue(color);
+	}
+    }
+}
+
+void ImageManipulator::combine(cv::Mat & from,
+			       cv::Mat & toR,
+			       cv::Mat & toG,
+			       cv::Mat & toB)
+{
+  if (toR.data == NULL
+      || toG.data == NULL
+      || toB.data == NULL)
+    {
+      std::cout << "You need all three channels for proper image fusion" << std::endl;
+      return;
+    }
+  if (from.data == NULL)
+    {
+      from.create(toR.rows, toR.cols, CV_32S);
+    }
+  for (int y = 0 ; y < from.rows ; ++y)
+    {
+      for (int x = 0 ; x < from.cols ; ++x)
+	{
+	  setPixelColor(x,
+			y,
+			from,
+			createPixelColor(
+					 getGrayPixel(x, y, toR),
+					 getGrayPixel(x, y, toG),
+					 getGrayPixel(x, y, toB)));
+	}
+    }
+}
+
+void ImageManipulator::LMC_nearestNeighbore(cv::Mat &from, cv::Mat &to)
 {
   (void)from;
   (void)to;
-  (void)type;
-  if (type == LMC_NEAREST_NEIGHBORE)
-    {}
-  else if (type == LMC_AVG_SURROUNDINGS)
-    {}
+  if (to.data != NULL)
+    {
+      
+    }
+}
+
+int ImageManipulator::averageSurrounds(int x, int y, cv::Mat &img)
+{
+  if (img.channels() == 3)
+    {
+      int avg_R = 0, avg_G = 0, avg_B = 0;
+
+      avg_R += getRed(getPixelColor(x - 1, y - 1, img));
+      avg_G += getGreen(getPixelColor(x - 1, y - 1, img));
+      avg_B += getBlue(getPixelColor(x - 1, y - 1, img));
+  
+      avg_R += getRed(getPixelColor(x, y - 1, img));
+      avg_G += getGreen(getPixelColor(x, y - 1, img));
+      avg_B += getBlue(getPixelColor(x, y - 1, img));
+
+      avg_R += getRed(getPixelColor(x + 1, y - 1, img));
+      avg_G += getGreen(getPixelColor(x + 1, y - 1, img));
+      avg_B += getBlue(getPixelColor(x + 1, y - 1, img));
+
+      avg_R += getRed(getPixelColor(x - 1, y, img));
+      avg_G += getGreen(getPixelColor(x - 1, y, img));
+      avg_B += getBlue(getPixelColor(x - 1, y, img));
+
+      avg_R += getRed(getPixelColor(x, y, img));
+      avg_G += getGreen(getPixelColor(x, y, img));
+      avg_B += getBlue(getPixelColor(x, y, img));
+
+      avg_R += getRed(getPixelColor(x + 1, y, img));
+      avg_G += getGreen(getPixelColor(x + 1, y, img));
+      avg_B += getBlue(getPixelColor(x + 1, y, img));
+
+      avg_R += getRed(getPixelColor(x - 1, y + 1, img));
+      avg_G += getGreen(getPixelColor(x - 1, y + 1, img));
+      avg_B += getBlue(getPixelColor(x - 1, y + 1, img));
+
+      avg_R += getRed(getPixelColor(x, y + 1, img));
+      avg_G += getGreen(getPixelColor(x, y + 1, img));
+      avg_B += getBlue(getPixelColor(x, y + 1, img));
+
+      avg_R += getRed(getPixelColor(x + 1, y + 1, img));
+      avg_G += getGreen(getPixelColor(x + 1, y + 1, img));
+      avg_B += getBlue(getPixelColor(x + 1, y + 1, img));
+  
+      avg_R /= 9;
+      avg_G /= 9;
+      avg_B /= 9;
+      return createPixelColor(avg_R, avg_G, avg_B);
+    }
+  else if (img.channels() == 1)
+    {
+      int avg_Gray = 0;
+
+      avg_Gray += getGrayPixel(x - 1, y - 1, img);
+      avg_Gray += getGrayPixel(x, y - 1, img);
+      avg_Gray += getGrayPixel(x + 1, y - 1, img);
+      avg_Gray += getGrayPixel(x - 1, y, img);
+      avg_Gray += getGrayPixel(x, y, img);
+      avg_Gray += getGrayPixel(x + 1, y, img);
+      avg_Gray += getGrayPixel(x - 1, y + 1, img);
+      avg_Gray += getGrayPixel(x, y + 1, img);
+      avg_Gray += getGrayPixel(x + 1, y + 1, img);
+      avg_Gray /= 9;
+      if (avg_Gray > 255)
+	avg_Gray = 255;
+      if (avg_Gray < 0)
+	avg_Gray = 0;
+      return avg_Gray;
+    }
+  return 0;
+}
+
+void * ImageManipulator::averageImage(void * data)
+{
+  cv::Mat * img = (cv::Mat*)data;
+
+  for (int y = 0 ; y < img->rows    ; ++y)
+    {
+      for (int x = 0; x < img->cols ; ++x)
+	{
+	  if (x > 0 && y > 0
+	      && x < img->cols - 1
+	      && y < img->rows - 1)
+	    {
+	      int avg = averageSurrounds(x, y, *img);
+	      setGrayPixel(x, y, avg);
+	    }
+	}
+    }
+  return (void*)img;
+}
+
+void ImageManipulator::LMC_avgSurroundings(cv::Mat &from, cv::Mat &to)
+{
+  float _scale = (float)from.rows / (float)to.rows;
+  printf("%.8f\n", _scale);
+  if (to.data != NULL)
+    {
+      if (to.channels() == 3)
+	{
+	  ///  cv::Mat * r = new cv::Mat(from.rows, from.cols, CV_8U);
+	  
+	  //split
+
+	  try
+	    {
+	      for (int y = 0 ; y < to.rows ; ++y)
+		{
+		  for (int x = 0 ; x < to.cols ; ++x)
+		    {	
+		      if (x > 1
+			  && y > 1
+			  && x < to.cols - 1
+			  && y < to.rows - 1)
+			{
+			  setPixelColor(x, 
+					y,
+					to,
+					averageSurrounds(floor(x * _scale), 
+							 floor(y * _scale), 
+							 from));
+			}
+		      else
+			{
+			  setPixelColor(x,
+					y,
+					to,
+					getPixelColor(floor(x * _scale),
+						      floor(y * _scale),
+						      from));
+			}
+		    }
+		}
+	    }
+	  catch (std::exception & e)
+	    {
+	      std::cout << "3 channels LMC_averageSurroundings" << e.what() << std::endl;
+	    }
+	}
+    }
+  if (to.channels() == 1)
+    {
+      try
+	{
+	  for (int y = 0 ; y < to.rows ; ++y)
+	    {
+	      for (int x = 0 ; x < to.cols ; ++x)
+		{	
+		  if (x > 1
+		      && y > 1
+		      && x < to.cols - 1
+		      && y < to.rows - 1)
+		    {
+		      setGrayPixel(x, 
+				   y,
+				   to,
+				   averageSurrounds(floor(x * _scale),
+						    floor(y * _scale),
+						    from));
+		    }
+		  else
+		    {
+		      setGrayPixel(x,
+				   y,
+				   to,
+				   getGrayPixel(floor(x * _scale),
+				   		floor(y * _scale),
+						from));
+		    }
+		}
+	    }
+	}
+      catch (std::exception & e)
+	{
+	  std::cout << "Exception in 1 channel LMC_averageSurroundings" << e.what() << std::endl;
+	}
+    }
+}
+void ImageManipulator::scale(cv::Mat &from, cv::Mat &to, SCALE_TYPE type)
+{
+  std::map<int, LMC_FUNCTION_POINTER>::iterator result = LMC_FUNCTIONS.find((int)type);
+
+  if(result != LMC_FUNCTIONS.end())
+    {
+      (this->*(result->second))(from, to);
+    }
 }
 
 void ImageManipulator::releaseKernel(char *** kernel)

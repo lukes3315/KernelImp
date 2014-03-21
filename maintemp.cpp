@@ -5,7 +5,8 @@
 int main(void)
 {
   ImageManipulator *manipulator = new  ImageManipulator();
-  cv::VideoCapture cap("video.mp4");
+  cv::VideoCapture cap(0);
+  //    cv::VideoCapture cap("video.mp4");
   int key = -1;
   cv::Mat img, img2, img3;
 
@@ -21,10 +22,14 @@ int main(void)
 	break;
       if (img2.data == NULL)
 	{
-	  img2.create(img.rows, img.cols, img.type());
-	  img3.create(img.rows, img.cols, 1);
+	  img2.create(img.rows * 1.5, img.cols * 1.5, img.type());
+	  img3.create(img.rows, img.cols, CV_8U);
 	}
-      manipulator->edgeDetect2(img, img2);
+      cv::cvtColor(img, img3, CV_RGB2GRAY);
+      manipulator->scale(img,
+	 		 img2,
+			 ImageManipulator::LMC_AVG_SURROUNDINGS);
+      cv::imshow("original", img3);
       cv::imshow("Image", img2);
       key = cv::waitKey(1);
     }

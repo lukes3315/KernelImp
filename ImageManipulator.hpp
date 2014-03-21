@@ -3,6 +3,13 @@
 
 #include <opencv2/opencv.hpp>
 #include <cmath>
+#include <map>
+#include <cstdio>
+#include <exception>
+
+class ImageManipulator;
+
+typedef void (ImageManipulator::*LMC_FUNCTION_POINTER)(cv::Mat&, cv::Mat&);
 
 class ImageManipulator
 {
@@ -45,18 +52,32 @@ public :
 	    int sizex,
 	    int sizey);
 
+  void split(cv::Mat &from,
+	     cv::Mat &toR,
+	     cv::Mat&toG,
+	     cv::Mat&toB);
+
+  void combine(cv::Mat &from,
+	     cv::Mat &toR,
+	     cv::Mat&toG,
+	     cv::Mat&toB);
+
   void scale(cv::Mat &from,
 	     cv::Mat &to,
 	     SCALE_TYPE type = (SCALE_TYPE)0);
 
 private :
 
-  char **edgeKernel1;
-  char **edgeKernel2;
-  char **edgeKernel3;
-  char **sharpenKernel;
-  char **blurKernel;
+  char **_edgeKernel1;
+  char **_edgeKernel2;
+  char **_edgeKernel3;
+  char **_sharpenKernel;
+  char **_blurKernel;
 
+  int _kernelSize;
+  int _middle;
+
+  std::map<int, LMC_FUNCTION_POINTER> LMC_FUNCTIONS;
 
   void allocKernel(int size, char *** kernel);
   void initialize();
@@ -80,8 +101,6 @@ private :
   int getGreen(int color);
   int getBlue(int color);
 
-  int getGray();
-
   void parseImage(char ** kernel,
 		       int _size, 
 		       cv::Mat & img,
@@ -102,9 +121,15 @@ private :
 			cv::Mat & img,
 			int divisor = 1);
 
+  void LMC_nearestNeighbore(cv::Mat &from,
+			    cv::Mat &to);
 
-  int _kernelSize;
-  int _middle;
+  int averageSurrounds(int x,
+		       int y,
+		       cv::Mat&img);
+
+  void LMC_avgSurroundings(cv::Mat &from,
+			   cv::Mat &to);
 };
 
 #endif
