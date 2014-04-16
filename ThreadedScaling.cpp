@@ -9,8 +9,50 @@ int getGrayPixel(int x, int y, cv::Mat & img)
 
 int avgSurrounds(int x, int y, cv::Mat & img)
 {
-  int avg_Gray = 0;
-      
+  //int avg_Gray = 0;
+  char kernel[3][3];
+
+  for (int i = 0 ; i < 3 ; ++i)
+    {
+      memset(kernel[i], -1, 3);
+    }
+  //kernel[0][0] = 1;
+  //kernel[0][2] = 1;
+  //kernel[2][0] = 1;
+  //kernel[2][2] = 1;
+  kernel[1][1] = 8;
+  int avg = 0;
+  int curr_x = 0, curr_y = 0;
+  int middle = 1;//floor(3 / 2);
+  for (int i = 0 ; i < 3 ; ++i)
+    {
+      for (int j = 0 ; j < 3 ; ++j)
+	{
+	  if (i != middle)
+	    {
+	      curr_y = y - (i - middle);
+	    }
+	  else if (i == middle)
+	    {
+	      curr_y = y;
+	    }
+	  if (j != middle)
+	    {
+	      curr_x = x - (j - middle);
+	    }
+	  else if (j == middle)
+	    {
+	      curr_x = x;
+	    }
+	  avg += getGrayPixel(curr_x, curr_y, img) * kernel[i][j];
+	}
+    }
+  avg /= 1;
+  if (avg > 255)
+    avg = 255;
+  if (avg < 0)
+    avg = 0;
+  /*
   avg_Gray += getGrayPixel(x - 1, y - 1, img);
   avg_Gray += getGrayPixel(x, y - 1, img);
   avg_Gray += getGrayPixel(x + 1, y - 1, img);
@@ -25,7 +67,8 @@ int avgSurrounds(int x, int y, cv::Mat & img)
     avg_Gray = 255;
   if (avg_Gray < 0)
     avg_Gray = 0;
-  return avg_Gray;
+  */
+  return avg;
 }
 
 void * averageImage(void * data)
@@ -40,7 +83,7 @@ void * averageImage(void * data)
 	      && x < img->cols - 1
 	      && y < img->rows - 1)
 	    {
-	      int avg = (x, y, *img);
+	      int avg = avgSurrounds(x, y, *img);
 	      img->data[y * img->cols + x] = avg;
 	    }
 	}

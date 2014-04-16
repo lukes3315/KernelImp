@@ -5,7 +5,7 @@ SRC_MAINSOFT = maintemp.cpp ImageManipulator.cpp
 SRC_SCALING = ThreadedScaling.cpp ImageManipulator.cpp
 
 CXX = g++
-CXX_FLAGS_MAIN = -W -Wall -Werror -lopencv_imgproc -lopencv_legacy -lopencv_highgui -lopencv_core
+CXX_FLAGS_MAIN = -W -Wall -Werror -lopencv_imgproc -lopencv_legacy -lopencv_highgui -lopencv_core -std=c++0x
 RULES = main
 RM = rm -rf
 

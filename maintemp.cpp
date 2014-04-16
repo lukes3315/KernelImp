@@ -9,6 +9,9 @@ int main(void)
   //    cv::VideoCapture cap("video.mp4");
   int key = -1;
   cv::Mat img, img2, img3;
+  cv::Mat r, g, b;
+  cv::Mat r_edge, g_edge, b_edge;
+  
 
   if (!cap.isOpened())
     {
@@ -22,15 +25,29 @@ int main(void)
 	break;
       if (img2.data == NULL)
 	{
-	  img2.create(img.rows * 1.5, img.cols * 1.5, img.type());
+	  img2.create(img.rows, img.cols, img.type());
 	  img3.create(img.rows, img.cols, CV_8U);
+	  r_edge.create(img.rows, img.cols, CV_8U);
+	  g_edge.create(img.rows, img.cols, CV_8U);
+	  b_edge.create(img.rows, img.cols, CV_8U);
 	}
       cv::cvtColor(img, img3, CV_RGB2GRAY);
-      manipulator->scale(img,
-	 		 img2,
-			 ImageManipulator::LMC_AVG_SURROUNDINGS);
+      //manipulator->split(img, r, g, b);
+      //manipulator->edgeDetect3(img,
+      //		       img2);
+      /*      
+	      manipulator->edgeDetect2(g,
+	      g_edge);
+	      manipulator->edgeDetect3(b,
+	      b_edge);
+	      manipulator->combine(img, r_edge, g_edge, b_edge);*/
+      
+      manipulator->blur(img3, r_edge);
+      manipulator->sharpen(r_edge, img3);
       cv::imshow("original", img3);
-      cv::imshow("Image", img2);
+      cv::imshow("blur", r_edge);
+      //cv::imshow("Green", g_edge);
+      //cv::imshow("Blue", b_edge);
       key = cv::waitKey(1);
     }
   cap.release();

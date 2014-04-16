@@ -6,9 +6,17 @@
 #include <map>
 #include <cstdio>
 #include <exception>
+#include <thread>
 
 class ImageManipulator;
 
+typedef int (ImageManipulator::*LMC_KERNEL_APPLY_METHODS)(char**,
+							  int,
+							  int,
+							  int,
+							  cv::Mat&,
+							  cv::Mat&,
+							  int);
 typedef void (ImageManipulator::*LMC_FUNCTION_POINTER)(cv::Mat&, cv::Mat&);
 
 class ImageManipulator
@@ -19,6 +27,20 @@ public :
       LMC_NEAREST_NEIGHBORE = 0,
       LMC_AVG_SURROUNDINGS = 1
     };
+
+  struct threadData
+  {
+    LMC_KERNEL_APPLY_METHODS method;
+    char **kernel;
+    cv::Mat * img_from;
+    cv::Mat * img_to;
+    int divisor;
+    int kernelSize;
+    int x, y;
+    int lim_x, lim_y;
+    std::mutex * mutex;
+    int _id;
+  };
 
   ImageManipulator();
   ImageManipulator(int size);
@@ -66,7 +88,20 @@ public :
 	     cv::Mat &to,
 	     SCALE_TYPE type = (SCALE_TYPE)0);
 
+  void * averageImage(void*);
+
 private :
+
+  struct _threadData
+  {
+    char ** kernel;
+    cv::Mat * from_img;
+    cv::Mat * to_img;
+    int size;
+    int divisor;
+  };
+
+  void * applyKernel(void *);
 
   char **_edgeKernel1;
   char **_edgeKernel2;
@@ -78,6 +113,7 @@ private :
   int _middle;
 
   std::map<int, LMC_FUNCTION_POINTER> LMC_FUNCTIONS;
+  std::map<int, LMC_KERNEL_APPLY_METHODS> LMC_KERNEL_METHODS;
 
   void allocKernel(int size, char *** kernel);
   void initialize();
@@ -108,19 +144,21 @@ private :
 		       int divisor = 1);
 
   int applyKernel3Chan(char ** kernel,
-			int x,
-			int y,
-			int size, 
-			cv::Mat & img,
-			int divisor = 1);
+		       int x,
+		       int y,
+		       int size, 
+		       cv::Mat & img,
+		       cv::Mat & to_img,
+		       int divisor = 1);
 
   int applyKernel1Chan(char ** kernel,
-			int x,
-			int y,
-			int size, 
-			cv::Mat & img,
-			int divisor = 1);
-
+		       int x,
+		       int y,
+		       int size, 
+		       cv::Mat & img,
+		       cv::Mat & to_img,
+		       int divisor = 1);
+  
   void LMC_nearestNeighbore(cv::Mat &from,
 			    cv::Mat &to);
 
